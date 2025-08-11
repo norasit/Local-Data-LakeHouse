@@ -1,88 +1,80 @@
-### Introduction 
+# Local Data Lakehouse (Phase 1)
 
-Data Warehouses have been state of the art for analytic workloads since the 1980's with the emergence of Ralph Kimball's dimensional modeling. These were built to aggreagte structured data from different sources and run analytic queries on them to generate insights. 
+This project sets up a **Local Data Lakehouse** environment using:
+- **Apache Iceberg** as the table format
+- **MinIO** as the object storage
+- **Trino** as the query engine
 
-Up until the emergence of cloud dwh's like Aws Redshift most data warehouses had stoarge and compute tightly coupled together. This made scaling inflexible since you could not independently scale storage from compute and vice versa. 
+---
 
-In general, Data Warehouses however are quite expensive and do not support unstructured data. Moreover they are not suited for advanced analytic workloads. Data Warehouses are also a single locked system, which means your data can just be accessed by the compute engine of the warehouse. 
+## Dataset
+For Phase 1, the dataset used is **NYC Taxi Trip Records – Yellow Taxi**  
+**Period:** January 2024 – June 2025  
+**Source:** [NYC TLC Trip Record Data](https://www.nyc.gov/assets/tlc/pages/about/tlc_trip_record_data.html)
 
-__Data Lakes__
+---
 
-These drawbacks have been adressed by Data Lakes. They offer cheap storage and flexibility with data format and file type. In addition to that, they can be accessed by a wide variety of computational engines.
+## 1. Prepare the Dataset
+After cloning this repository, run the following commands to download the dataset files into the `datasets/nyc_tlc` folder:
 
-Individual datasets within data lakes are often organized as collections of files within directory structures, often with multiple files in one directory representing a single table. The benefits of this approach are that data is highly accessible and flexible. 
-However, several concepts provided by traditional databases and data warehouses are not addressed solely by directories of files and require additional tooling. This includes:
+```bash
+chmod +x scripts/download_tlc_yellow.sh
+scripts/download_tlc_yellow.sh
+```
 
-- What is the schema of a dataset, including columns and data types
-- Which files comprise the dataset and how are they organized (e.g., partitions)
-- How different applications coordinate changes to the dataset, including both changes to the definition of the dataset and changes to data
-- Making transactions ACID compliant 
-- Enabling, Inserts, merges and timetravel etc. 
+**Notes:**
+- The script will download large `.parquet` files — ensure you have sufficient disk space.
+- Dataset files are **not** stored in the Git repository.
 
-A solution are __Data Lakehouse__
+---
 
-Data Lakehouses still use the cheap and flexible storage of Data Lakes, but they add a layer of structure and governance to the data. They use open table formats like Apache Iceberg to provide schema enforcement, organization of files, and other traditional database-like features.
-
-This enables Data Lakehouses to use traditional SQL-based tools and techniques to query and analyze the data, which makes it easier for both business analysts and data scientists to work with the data and find insights.
-
-By combining the best aspects of Data Lakes and traditional Data Warehouses, Data Lakehouses provide a way to store and manage data that is both flexible and structured. This makes it easier for teams to collaborate, find insights, and make informed decisions.
-
-In this repository I have built a sample Lakehouse architecture, deployed via Docker compose. It can be used for local testing purposes or as a backend to your own data analysis projects, as a more real-life like solution compared to files on your own disk.
-
-__Note:__ This project is only suited for testing purposes and not for a production deployment.
-
-### Architecture of this lakehouse:
-
-![](.images/architecture.png)
-
-**Storage:**
-
-As for the storage layer, I have chosen Minio, which is an open source, S3 compliant Object storage. Such a storage has less operational cost than a traditional data warehouses and enables us to store all types of data and formats. Moreover since it is decoupled from our query engine we can scale it independently, if we need additional storage but not more processing power. 
-
-The storage in this project comes preconfigured with a bucket and a raw zone (via a key prefix):
-
-Since it might be interesting to directly work with some data, I have added a parquet file to the raw zone about people, their jobs and their respective salarys which needs some cleaning. You can clean it and create new tables with the refined data or directly visualize it using Metabase.
-
-**Table formats**
-
-Table formats are a way to organize data files. They try to bring database-like features to the Data lake. This is one of the key differences between a Data Lake and Lakehouse. 
-
-I have chosen Apache Iceberg, which in particular has the following advantages over Hudi and Delta tables:  
-
-Iceberg is faster regarding insert and update operations as well as requiring less storage. 
-Furthermore it lets you change partitions easily while data evolves, as well as making schema evolution possible with a multitude of query engines. 
-
-**Schema Metastore**
-
-The schemas, partitions and other metadata of the created tables needs to be stored in a central repository. This is what we use the Hive Metastore for. It consists of a Thrift Server and a relational database in the backend. In this case I have chosen MariaDB. 
-
-With Apache Iceberg one could also use a JDBC Metastore, this however only works with Iceberg and does not let you create views. Since I wanted to provide flexibility egarding the table format I have opted against it.
-
-**Query engine**
-
-Trino is a Query engine which lets you create and query tables based on flat files via. Iceberg. Moreover it support query federation, meaning you can join data from multiple different sources. Like all other services, Trino has been deployed in a Docker container.  
-
-Trino itself works like a massively parallel processing databases query engine, meaning it scales verticaly instead of increasing processing power of one node. Moreover it is a connector based architecture. As explained before Trino itself is only a query engine, thus relying on connectors to connect to all types of data sources. A database on the other hand has both the query engine and storage coupled together. The connector will translate the Sql statement to a set of API calls which will return so called pages: A collection of rows in columnar format. The users Sql query will be translated into a query or execution plan on the data. Such a plan consists of multiple stages that process these pages and which will be assigned to the worker nodes by the coordinator. 
-
-There is a really good explanation on it in the O'Reilly Trino book, which can be found [here](https://www.oreilly.com/library/view/trino-the-definitive/9781098107703/ch04.html#fig-task-split)
-
-In this project the computational service (Trino) is decoupled from the storage and thus would allow for easy scalability independent of the data storage. 
-
-**BI Tool**
-
-I have added and pre-configured Metabase as a BI Tool, in order for you to directly work with the Lakehouse. Metabase is also deployed in a container which has a volume with configurations mounted to it.
-
-You can access Metabase with the following credentials
-
-Email: test@testmail.com
-Password: test123!
-
-### How to deploy it locally 
-
-To run this project on your machine, you have to clone it and simply run a
+## 2. Run the Local Data Lakehouse
+Start all services using Docker Compose:
 
 ```bash
 docker compose up -d
 ```
 
-Upon startup you already have a sample Iceberg table in the raw zone of your Lakehouse. It has been created using an init container which opens a Trino cli, connects to your instance and creates these tables. 
+---
+
+## 3. Access MinIO and Upload Files
+- **URL:** [http://localhost:9001](http://localhost:9001)  
+- **Access Key:** `test`  
+- **Secret Key:** `test12334567`  
+
+After logging in, upload dataset files into the bucket named **`lakehouse-data`**.
+
+### Folder Structure Pattern
+Inside the `lakehouse-data` bucket, dataset files should be organized using the following path pattern:
+
+```
+raw/nyc_tlc/<car_type>/year=<YYYY>/month=<MM>/
+```
+
+Where:
+- `<car_type>` = `yellow`, `green`, `for_hire_vehicle`, `high_volume`
+- `<YYYY>` = Year of the trip data (e.g., `2024`, `2025`)
+- `<MM>` = Month of the trip data, zero-padded (e.g., `01`, `02`, ..., `12`)
+
+**Example:**
+```
+raw/nyc_tlc/yellow/year=2024/month=01/yellow_tripdata_2024-01.parquet
+raw/nyc_tlc/yellow/year=2024/month=02/yellow_tripdata_2024-02.parquet
+raw/nyc_tlc/green/year=2025/month=03/green_tripdata_2025-03.parquet
+```
+
+**Why use this pattern?**
+- **Scalable:** Easily add new vehicle types without changing the existing structure.
+- **Efficient Queries:** Table engines like Iceberg & Trino can use `car_type`, `year`, and `month` as partitions for faster queries.
+- **Organized Storage:** Keeps datasets well-structured for ingestion and maintenance.
+
+---
+
+## 4. Access Trino
+- **URL:** [http://localhost:8080](http://localhost:8080)  
+You can query data using the Trino CLI or connect through BI tools such as Apache Superset.
+
+---
+
+## License
+This project is for educational purposes only.
