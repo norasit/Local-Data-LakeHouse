@@ -6,9 +6,9 @@ __pycache__/
 datasets/nyc_tlc/yellow/
 
 # Ignore files in jars
-/jars/*
+jars/
 # Except .gitkeep in 'jars'
-!/jars/.gitkeep
+# !/jars/.gitkeep
 
 # Ignore MinIO data (persistent volume)
 minio-data/
