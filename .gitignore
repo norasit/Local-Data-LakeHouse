@@ -5,8 +5,10 @@ __pycache__/
 # Ignore downloaded datasets
 datasets/nyc_tlc/yellow/
 
-# Ignore jars
-jars/
+# Ignore files in jars
+/jars/*
+# Except .gitkeep in 'jars'
+!/jars/.gitkeep
 
 # Ignore MinIO data (persistent volume)
 minio-data/
